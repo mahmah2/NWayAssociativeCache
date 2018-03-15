@@ -1,0 +1,7 @@
+/.vs
+/TestResults
+/packages
+/SetAssociativeCache/bin
+/SetAssociativeCache/obj
+/CacheTester/bin
+/CacheTester/obj
