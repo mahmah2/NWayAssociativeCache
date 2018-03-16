@@ -9,12 +9,14 @@ namespace SetAssociativeCache
 
     public class CacheEntryList<TKey, TValue>
     {
-        public CacheEntryList(int n, SelectKeyToDeleteFunc<TKey,TValue> selectDeleteIndexFunc, Comparer<TKey> keyComparer) 
+        public CacheEntryList(int n, SelectKeyToDeleteFunc<TKey,TValue> selectDeleteIndexFunc
+            , Comparer<TKey> keyComparer, Comparer<TValue> valueComparer) 
         {
             _capacity = n;
             _deleteSelector = selectDeleteIndexFunc;
             _wayData = new List<CacheEntry<TKey, TValue>>(n);
             _keyComparer = keyComparer;
+            _valueComparer = valueComparer;
         }
 
         new public void Add(TKey key, TValue value)
@@ -40,6 +42,7 @@ namespace SetAssociativeCache
         private SelectKeyToDeleteFunc<TKey, TValue> _deleteSelector;
 
         private Comparer<TKey> _keyComparer;
+        private Comparer<TValue> _valueComparer;
 
         public void SetValue(TKey key, TValue value)
         {
@@ -47,7 +50,8 @@ namespace SetAssociativeCache
 
             if (foundEntry!=null)
             {
-                foundEntry.Value = value; //todo : update value function
+                if ( _valueComparer(foundEntry.Value, value ) != 0)
+                    foundEntry.UpdateValue(value); 
             }
             else
             {
@@ -62,7 +66,7 @@ namespace SetAssociativeCache
 
                     _wayData.Remove(entryToRemove);
 
-                    OnMiss?.Invoke(null, EventArgs.Empty);
+                    OnMiss?.Invoke(this, EventArgs.Empty);
                 }
 
                 var entry = new CacheEntry<TKey, TValue>(key, value);
@@ -71,32 +75,46 @@ namespace SetAssociativeCache
             }
         }
 
-        public List<CacheEntry<TKey,TValue>> GenerateInfoList()
+        public IEnumerable<CacheEntryStat<TKey,TValue>> GenerateStatisticsList()
         {
-            return _wayData;
+            return _wayData.Select(ce => new CacheEntryStat<TKey, TValue>(ce));
         }
 
-        internal bool ContainsKey(TKey key)
+        public bool ContainsKey(TKey key)
         {
             var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
 
             return foundEntry != null;
         }
 
-        internal TValue ReadValue(TKey key)
+        public TValue ReadValue(TKey key)
         {
             var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
 
             if (foundEntry != null)
             {
-                OnHit?.Invoke(null, EventArgs.Empty);
+                OnHit?.Invoke(this, EventArgs.Empty);
                 return foundEntry.ReadValueAndUpdateStat();
             }
             else
             {
-                OnMiss?.Invoke(null, EventArgs.Empty);
+                OnMiss?.Invoke(this, EventArgs.Empty);
                 return default(TValue);
             }
+        }
+
+        public string ToString(string tab)
+        {
+            if (_wayData.Count == 0)
+                return $"{tab}--Empty--";
+
+            var s = $"{tab}Index , Key , Value\r\n{tab}---------------------\r\n";
+
+            for (int i = 0; i < _wayData.Count; i++)
+            {
+                s += $"{tab}{i} : {_wayData[i].Key.ToString()} , {_wayData[i].Value.ToString()}  \r\n";
+            }
+            return s;
         }
     }
 }

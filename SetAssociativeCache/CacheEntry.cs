@@ -14,18 +14,22 @@ namespace SetAssociativeCache
             ReadCount = 0;
         }
 
-
         public TKey Key { get; set; }
         public TValue Value { get; set; }
         public int ReadCount { get; set; }
         public DateTime LastReadTime { get; set; }
-
 
         public TValue ReadValueAndUpdateStat()
         {
             ReadCount++;
             LastReadTime = DateTime.Now;
             return Value;
+        }
+        public void UpdateValue(TValue value)
+        {
+            Value = value;
+            LastReadTime = DateTime.Now;
+            ReadCount = 0;
         }
     }
 }
