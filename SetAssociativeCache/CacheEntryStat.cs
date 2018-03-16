@@ -9,11 +9,12 @@ namespace SetAssociativeCache
         public CacheEntryStat(CacheEntry<TKey, TValue> cacheEntry)
         {
             Key = cacheEntry.Key;
-            LastReadTime = cacheEntry.LastReadTime;
+            LastReadTick = cacheEntry.LastReadTick;
             ReadCount = cacheEntry.ReadCount;
         }
         public TKey Key { get; set; }
         public int ReadCount { get; set; }
-        public DateTime LastReadTime { get; set; }
+        //public DateTime LastReadTime { get; set; }
+        public long LastReadTick { get; set; }
     }
 }

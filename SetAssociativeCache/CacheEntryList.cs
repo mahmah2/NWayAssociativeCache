@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -17,23 +18,12 @@ namespace SetAssociativeCache
             _wayData = new List<CacheEntry<TKey, TValue>>(n);
             _keyComparer = keyComparer;
             _valueComparer = valueComparer;
+
+            _writeLock = new object();
         }
-
-        new public void Add(TKey key, TValue value)
-        {
-            var baseClass = this as Dictionary<TKey, TValue>;
-            baseClass.Add(key, value);
-
-            LastReadTime = DateTime.Now;
-            ReadCount = 0;
-        }
-
-        public DateTime LastReadTime { get; set; }
 
         public event EventHandler OnMiss;
         public event EventHandler OnHit;
-
-        public int ReadCount { get; set; }
 
         private int _capacity;
 
@@ -42,7 +32,10 @@ namespace SetAssociativeCache
         private SelectKeyToDeleteFunc<TKey, TValue> _deleteSelector;
 
         private Comparer<TKey> _keyComparer;
+
         private Comparer<TValue> _valueComparer;
+
+        private object _writeLock;
 
         public void SetValue(TKey key, TValue value)
         {
@@ -50,8 +43,13 @@ namespace SetAssociativeCache
 
             if (foundEntry!=null)
             {
-                if ( _valueComparer(foundEntry.Value, value ) != 0)
-                    foundEntry.UpdateValue(value); 
+                if (_valueComparer(foundEntry.Value, value) != 0)
+                {
+                    lock (_writeLock)
+                    {
+                        foundEntry.UpdateValue(value);
+                    }
+                }
             }
             else
             {
@@ -64,6 +62,10 @@ namespace SetAssociativeCache
                     if (entryToRemove == null)
                         throw new Exception($"Selected key to be deleted doesn't exist. key = {keyToRemove?.ToString()} ");
 
+                    Trace.WriteLine($"Removing key : {entryToRemove.Key.ToString()}");
+                    Trace.WriteLine(ToString("\t"));
+                    Trace.WriteLine($"----------------------------------------------");
+
                     _wayData.Remove(entryToRemove);
 
                     OnMiss?.Invoke(this, EventArgs.Empty);
@@ -71,7 +73,10 @@ namespace SetAssociativeCache
 
                 var entry = new CacheEntry<TKey, TValue>(key, value);
 
-                _wayData.Add(entry);
+                lock (_writeLock)
+                {
+                    _wayData.Add(entry);
+                }
             }
         }
 
@@ -82,14 +87,24 @@ namespace SetAssociativeCache
 
         public bool ContainsKey(TKey key)
         {
-            var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+            CacheEntry<TKey, TValue> foundEntry = default(CacheEntry<TKey, TValue>);
+
+            lock (_writeLock)
+            {
+                foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+            }
 
             return foundEntry != null;
         }
 
         public TValue ReadValue(TKey key)
         {
-            var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+            CacheEntry<TKey, TValue> foundEntry  = default(CacheEntry<TKey, TValue>);
+
+            lock (_writeLock)
+            {
+                foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+            }
 
             if (foundEntry != null)
             {
@@ -112,7 +127,8 @@ namespace SetAssociativeCache
 
             for (int i = 0; i < _wayData.Count; i++)
             {
-                s += $"{tab}{i} : {_wayData[i].Key.ToString()} , {_wayData[i].Value.ToString()}  \r\n";
+                //s += $"{tab}{i} : {_wayData[i].Key.ToString()} , {_wayData[i].Value.ToString()}, {_wayData[i].LastReadTick.ToString("o")}\r\n";
+                s += $"{tab}{i} : {_wayData[i].Key.ToString()} , {_wayData[i].Value.ToString()}, {_wayData[i].LastReadTick.ToString()}\r\n";
             }
             return s;
         }

@@ -9,9 +9,9 @@ namespace SetAssociativeCache
     {
         public static TKey LRUSelector(List<CacheEntry<TKey, TValue>> list)
         {
-            var earliestTime = list.Min(t => t.LastReadTime);
+            var earliestTime = list.Min(t => t.LastReadTick);
 
-            var entry = list.FirstOrDefault(p => p.LastReadTime == earliestTime);
+            var entry = list.FirstOrDefault(p => p.LastReadTick == earliestTime);
 
             return entry.Key;
         }

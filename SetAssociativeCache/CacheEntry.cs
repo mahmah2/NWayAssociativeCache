@@ -10,25 +10,26 @@ namespace SetAssociativeCache
         {
             Key = key;
             Value = value;
-            LastReadTime = DateTime.Now;
+            LastReadTick = TimeHelper.NanoTime();
             ReadCount = 0;
         }
 
         public TKey Key { get; set; }
         public TValue Value { get; set; }
         public int ReadCount { get; set; }
-        public DateTime LastReadTime { get; set; }
+        //public DateTime LastReadTime { get; set; }
+        public long LastReadTick { get; set; }
 
         public TValue ReadValueAndUpdateStat()
         {
             ReadCount++;
-            LastReadTime = DateTime.Now;
+            LastReadTick = TimeHelper.NanoTime();
             return Value;
         }
         public void UpdateValue(TValue value)
         {
             Value = value;
-            LastReadTime = DateTime.Now;
+            LastReadTick = TimeHelper.NanoTime();
             ReadCount = 0;
         }
     }
