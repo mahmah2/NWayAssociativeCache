@@ -16,7 +16,8 @@ namespace CacheTester
                                                                             ,(i,j)=> i-j  //comparing keys
                                                                             ,(i,j)=>i-j //comparing values
                                                                             ,i => 0  //Select N 
-                                                                            ,l => 0); //Select index 0 to delete in a set
+                                                                            );
+            cache.SetRemoveAlgorithm(SetAssociativeCache.AlgorithmTypeEnum.Custom, i => 0); //always remove the first entry
 
             Assert.IsNotNull(cache);
 
@@ -67,8 +68,9 @@ namespace CacheTester
             var cache = new SetAssociativeCache.NWayAssociateCache<string, int>(1, 16,
                 (i, j) => string.Compare(i,j),
                 (i, j) => i - j,
-                i => 0,  //Select N 
-                l => l[0].Key ); //Select index 0 to delete in a set
+                i => 0  //Select N 
+                ); 
+            cache.SetRemoveAlgorithm(SetAssociativeCache.AlgorithmTypeEnum.Custom, l => l[0].Key); //always remove the first entry
 
             Assert.IsNotNull(cache);
 
@@ -123,5 +125,8 @@ namespace CacheTester
             cache.ReadValue("S0003", out studentValue);
             Assert.AreEqual(studentValue.Age, 18.9M);
         }
+
+        //Todo :  test remove of most frequently used
+        //Todo : test multi threading
     }
 }

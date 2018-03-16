@@ -6,12 +6,12 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public delegate TKey SelectKeyToDeleteFunc<TKey, TValue> (List<CacheEntry<TKey, TValue>> list);
+    public delegate TKey SelectKeyToDeleteFunc<TKey, TValue>(List<CacheEntry<TKey, TValue>> list);
 
     public class CacheEntryList<TKey, TValue>
     {
-        public CacheEntryList(int n, SelectKeyToDeleteFunc<TKey,TValue> selectDeleteIndexFunc
-            , Comparer<TKey> keyComparer, Comparer<TValue> valueComparer) 
+        public CacheEntryList(int n, SelectKeyToDeleteFunc<TKey, TValue> selectDeleteIndexFunc
+            , Comparer<TKey> keyComparer, Comparer<TValue> valueComparer)
         {
             _capacity = n;
             _deleteSelector = selectDeleteIndexFunc;
@@ -37,50 +37,62 @@ namespace SetAssociativeCache
 
         private object _writeLock;
 
+        public bool SetDeleteKeySelector(SelectKeyToDeleteFunc<TKey,TValue> func)
+        {
+            lock (_writeLock)
+            {
+                _deleteSelector = func;
+                return true;
+            }
+        }
+
         public void SetValue(TKey key, TValue value)
         {
-            var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
-
-            if (foundEntry!=null)
+            var missHappened = false;
+            lock (_writeLock)
             {
-                if (_valueComparer(foundEntry.Value, value) != 0)
+                var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+
+                if (foundEntry != null)
                 {
-                    lock (_writeLock)
+                    if (_valueComparer(foundEntry.Value, value) != 0)
                     {
                         foundEntry.UpdateValue(value);
                     }
                 }
-            }
-            else
-            {
-                while(_wayData.Count >= _capacity) 
+                else
                 {
-                    var keyToRemove = _deleteSelector(_wayData);
+                    while (_wayData.Count >= _capacity)
+                    {
+                        var keyToRemove = _deleteSelector(_wayData);
 
-                    var entryToRemove = _wayData.FirstOrDefault(p => _keyComparer(p.Key, keyToRemove) == 0);
+                        var entryToRemove = _wayData.FirstOrDefault(p => _keyComparer(p.Key, keyToRemove) == 0);
 
-                    if (entryToRemove == null)
-                        throw new Exception($"Selected key to be deleted doesn't exist. key = {keyToRemove?.ToString()} ");
+                        if (entryToRemove == null)
+                            throw new Exception($"Selected key to be deleted doesn't exist. key = {keyToRemove?.ToString()} ");
 
-                    Trace.WriteLine($"Removing key : {entryToRemove.Key.ToString()}");
-                    Trace.WriteLine(ToString("\t"));
-                    Trace.WriteLine($"----------------------------------------------");
+                        //Trace.WriteLine($"Removing key : {entryToRemove.Key.ToString()}");
+                        //Trace.WriteLine(ToString("\t"));
+                        //Trace.WriteLine($"----------------------------------------------");
 
-                    _wayData.Remove(entryToRemove);
+                        _wayData.Remove(entryToRemove);
 
-                    OnMiss?.Invoke(this, EventArgs.Empty);
-                }
+                        missHappened = true;
+                    }
 
-                var entry = new CacheEntry<TKey, TValue>(key, value);
+                    var entry = new CacheEntry<TKey, TValue>(key, value);
 
-                lock (_writeLock)
-                {
                     _wayData.Add(entry);
                 }
             }
+
+            if (missHappened)
+            {
+                OnMiss?.Invoke(this, EventArgs.Empty);
+            }
         }
 
-        public IEnumerable<CacheEntryStat<TKey,TValue>> GenerateStatisticsList()
+        public IEnumerable<CacheEntryStat<TKey, TValue>> GenerateStatisticsList()
         {
             return _wayData.Select(ce => new CacheEntryStat<TKey, TValue>(ce));
         }
@@ -99,22 +111,36 @@ namespace SetAssociativeCache
 
         public TValue ReadValue(TKey key)
         {
-            CacheEntry<TKey, TValue> foundEntry  = default(CacheEntry<TKey, TValue>);
+            var missHappened = false;
+            var hitHappened = false;
 
-            lock (_writeLock)
+            try
             {
-                foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
-            }
+                lock (_writeLock)
+                {
+                    CacheEntry<TKey, TValue> foundEntry = default(CacheEntry<TKey, TValue>);
 
-            if (foundEntry != null)
-            {
-                OnHit?.Invoke(this, EventArgs.Empty);
-                return foundEntry.ReadValueAndUpdateStat();
+                    foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+
+                    if (foundEntry != null)
+                    {
+                        hitHappened = true;
+                        return foundEntry.ReadValueAndUpdateStat();
+                    }
+                    else
+                    {
+                        missHappened = true;
+                        return default(TValue);
+                    }
+                }
             }
-            else
+            finally
             {
-                OnMiss?.Invoke(this, EventArgs.Empty);
-                return default(TValue);
+                if (hitHappened)
+                    OnHit?.Invoke(this, EventArgs.Empty);
+
+                if (missHappened)
+                    OnMiss?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -127,7 +153,6 @@ namespace SetAssociativeCache
 
             for (int i = 0; i < _wayData.Count; i++)
             {
-                //s += $"{tab}{i} : {_wayData[i].Key.ToString()} , {_wayData[i].Value.ToString()}, {_wayData[i].LastReadTick.ToString("o")}\r\n";
                 s += $"{tab}{i} : {_wayData[i].Key.ToString()} , {_wayData[i].Value.ToString()}, {_wayData[i].LastReadTick.ToString()}\r\n";
             }
             return s;

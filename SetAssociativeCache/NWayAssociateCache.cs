@@ -21,10 +21,9 @@ namespace SetAssociativeCache
         /// <param name="getKeySetIndex">Function that gets a key and returns a hash number out of its value which is greater equal to 0 and less than N</param>
         /// <param name="selectDeleteIndexFunc">This function receives a list of statistics in a set of cach entries and choses one to be deleted</param>
         public NWayAssociateCache(int nWays, int setCapacity,
-            Comparer<TKey> keyComparer, 
-            Comparer<TValue> valueComparer, 
-            GetKeySetIndex<TKey> getKeySetIndex,
-            SelectKeyToDeleteFunc<TKey, TValue> selectDeleteIndexFunc = null)
+            Comparer<TKey> keyComparer,
+            Comparer<TValue> valueComparer,
+            GetKeySetIndex<TKey> getKeySetIndex)
         {
             if (nWays < 1)
                 throw new Exception($"{nameof(nWays)} should be greater than zero.");
@@ -38,19 +37,39 @@ namespace SetAssociativeCache
             _valueComparer = valueComparer;
             _getKeySetIndex = getKeySetIndex;
 
-            //enforce a default LRU algorithm if nothing was selected
-            if (selectDeleteIndexFunc == null)
-                selectDeleteIndexFunc = AlgorithmRepository<TKey, TValue>.LRUSelector;
-
-            _selectKeyToDeleteFunc = selectDeleteIndexFunc;
+            _selectKeyToDeleteFunc = AlgorithmRepository<TKey, TValue>.AlgorithmMethods[AlgorithmTypeEnum.LRU];
 
             _cache = new CacheDataStorage<TKey, TValue>(nWays);
             for (int setIndex = 0; setIndex < nWays; setIndex++)
             {
-                _cache[setIndex] = new CacheEntryList<TKey, TValue>(setCapacity, selectDeleteIndexFunc, keyComparer, valueComparer);
+                _cache[setIndex] = new CacheEntryList<TKey, TValue>(setCapacity, _selectKeyToDeleteFunc, keyComparer, valueComparer);
                 _cache[setIndex].OnMiss += NWayAssociateCache_OnEntryListMiss;
                 _cache[setIndex].OnHit += NWayAssociateCache_OnEntryListHit;
             }
+        }
+
+        public bool SetRemoveAlgorithm(AlgorithmTypeEnum algorithmType,
+            SelectKeyToDeleteFunc<TKey, TValue> customDeleteKeySelector = null)
+        {
+            if (algorithmType == AlgorithmTypeEnum.Custom)
+            {
+                if (customDeleteKeySelector == null)
+                    throw new ArgumentNullException(nameof(customDeleteKeySelector));
+
+                _selectKeyToDeleteFunc = customDeleteKeySelector;
+            }
+            else
+            {
+                _selectKeyToDeleteFunc = AlgorithmRepository<TKey,TValue>.AlgorithmMethods[algorithmType];
+            }
+
+            //Apply the change to underlying cache sets
+            for (int setIndex = 0; setIndex < _n; setIndex++)
+            {
+                _cache[setIndex].SetDeleteKeySelector(_selectKeyToDeleteFunc);
+            }
+
+            return true;
         }
 
         private void NWayAssociateCache_OnEntryListHit(object sender, EventArgs e)
@@ -119,7 +138,7 @@ namespace SetAssociativeCache
             var s = $"Dumping of {_n} Way cache with {_setCapacity} rows in each set: \r\n";
             for (int i = 0; i < _cache.Count; i++)
             {
-                   s += $"CacheSet {i} \r\n{_cache[i].ToString("\t")}\r\n"; 
+                s += $"CacheSet {i} \r\n{_cache[i].ToString("\t")}\r\n";
             }
             return s;
         }

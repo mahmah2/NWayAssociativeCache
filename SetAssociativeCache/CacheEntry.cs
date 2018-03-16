@@ -17,7 +17,6 @@ namespace SetAssociativeCache
         public TKey Key { get; set; }
         public TValue Value { get; set; }
         public int ReadCount { get; set; }
-        //public DateTime LastReadTime { get; set; }
         public long LastReadTick { get; set; }
 
         public TValue ReadValueAndUpdateStat()
