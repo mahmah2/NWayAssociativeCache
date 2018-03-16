@@ -13,11 +13,11 @@ namespace CacheTester
         {
             //Testing 1 Way cache with 16 entries and integer key and integer value 
             var cache = new SetAssociativeCache.NWayAssociateCache<int, int>(1, 16 
-                                                                            ,(i,j)=> i-j  //comparing keys
-                                                                            ,(i,j)=>i-j //comparing values
-                                                                            ,i => 0  //Select N 
+                                                                            ,(i,j)=> i-j  //how to compare keys
+                                                                            ,(i,j)=> i-j  //how to compare  values
+                                                                            , i => 0      //Select first cache 
                                                                             );
-            cache.SetRemoveAlgorithm(SetAssociativeCache.AlgorithmTypeEnum.Custom, i => 0); //always remove the first entry
+            cache.SetRemoveAlgorithm(SetAssociativeCache.AlgorithmTypeEnum.Custom, i => 0); //always remove the first entry in a set
 
             Assert.IsNotNull(cache);
 
@@ -36,8 +36,8 @@ namespace CacheTester
             //Testing 1 Way cache with 2 entries and integer key and integer value 
             //Testing miss count
             var cache = new SetAssociativeCache.NWayAssociateCache<int, int>(1, 2,
-                                                                            (i, j) => i - j,
-                                                                            (i, j) => i - j,
+                                                                            (i, j) => i - j, //how to compare keys
+                                                                            (i, j) => i - j, //how to compare values
                                                                             i => 0  //Select N 
                                                                             );
 
@@ -126,6 +126,14 @@ namespace CacheTester
             Assert.AreEqual(studentValue.Age, 18.9M);
         }
 
+        [TestMethod]
+        public void InterfaceTest()
+        {
+            Assert.AreEqual(true, Int64 is IComparable);
+
+        }
+
+        //todo :  test custom algorithm : remove last element
         //Todo :  test remove of most frequently used
         //Todo : test multi threading
     }
