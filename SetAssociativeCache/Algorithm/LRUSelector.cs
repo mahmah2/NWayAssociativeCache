@@ -5,9 +5,9 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public class LRUSelector<TKey, TValue> : IEntrySelector<TKey, TValue>
+    public class LRUSelector<TKey> : IEntrySelector<TKey>
     {
-        public TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey, TValue>> list)
+        public TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey>> list)
         {
             var earliestTime = list.Min(t => t.LastReadTick);
 

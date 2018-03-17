@@ -5,9 +5,9 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public class MRUSelector<TKey, TValue> : IEntrySelector<TKey, TValue>
+    public class MRUSelector<TKey> : IEntrySelector<TKey>
     {
-        public TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey, TValue>> list)
+        public TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey>> list)
         {
             var latestTime = list.Max(t => t.LastReadTick);
 

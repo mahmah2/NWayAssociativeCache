@@ -4,8 +4,8 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public interface IEntrySelector<TKey, TValue>
+    public interface IEntrySelector<TKey>
     {
-        TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey, TValue>> list);
+        TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey>> list);
     }
 }

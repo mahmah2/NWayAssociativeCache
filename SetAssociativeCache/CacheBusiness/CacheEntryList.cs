@@ -8,7 +8,7 @@ namespace SetAssociativeCache
 {
     public class CacheEntryList<TKey, TValue> where TKey : IComparable<TKey> where TValue : IComparable<TValue>
     {
-        public CacheEntryList(int n, IEntrySelector<TKey,TValue> keyToBeDeletedSelector)
+        public CacheEntryList(int n, IEntrySelector<TKey> keyToBeDeletedSelector)
         {
             _capacity = n;
             _keyToBeDeletedSelector = keyToBeDeletedSelector;
@@ -24,11 +24,11 @@ namespace SetAssociativeCache
 
         private List<CacheEntry<TKey, TValue>> _wayData;
 
-        private IEntrySelector<TKey, TValue> _keyToBeDeletedSelector;
+        private IEntrySelector<TKey> _keyToBeDeletedSelector;
 
         private object _writeLock;
 
-        public bool SetDeleteKeySelector(IEntrySelector<TKey, TValue> func)
+        public bool SetDeleteKeySelector(IEntrySelector<TKey> func)
         {
             lock (_writeLock)
             {
@@ -83,9 +83,9 @@ namespace SetAssociativeCache
             }
         }
 
-        public IEnumerable<CacheEntryStat<TKey, TValue>> GenerateStatisticsList()
+        public IEnumerable<CacheEntryStat<TKey>> GenerateStatisticsList()
         {
-            return _wayData.Select(ce => new CacheEntryStat<TKey, TValue>(ce));
+            return _wayData.Select(ce => new CacheEntryStat<TKey>(ce.Key, ce.LastReadTick, ce.ReadCount));
         }
 
         public bool ContainsKey(TKey key)

@@ -14,7 +14,7 @@ namespace CacheTester
         {
             //Testing 1 Way cache with 16 entries and integer key and integer value 
             var cache = new NWayAssociateCache<int, int>(1, 16, new IntKeyMapper());
-            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<int,int>()); //always remove the first entry in a set
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<int>()); //always remove the first entry in a set
 
 
             Assert.IsNotNull(cache);
@@ -62,7 +62,7 @@ namespace CacheTester
         {
             //Testing 1 Way cache with 16 entries and string key and integer value 
             var cache = new NWayAssociateCache<string, int>(1, 16, new StringKeyMapper()); 
-            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<string,int>()); //always remove the first entry
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<string>()); //always remove the first entry
 
             Assert.IsNotNull(cache);
 

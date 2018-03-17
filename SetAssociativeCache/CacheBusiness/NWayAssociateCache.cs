@@ -42,7 +42,7 @@ namespace SetAssociativeCache
         }
 
         public bool SetRemoveAlgorithm(AlgorithmTypeEnum algorithmType,
-            IEntrySelector<TKey, TValue> customDeleteKeySelector = null)
+            IEntrySelector<TKey> customDeleteKeySelector = null)
         {
             if (algorithmType == AlgorithmTypeEnum.Custom)
             {
@@ -79,7 +79,7 @@ namespace SetAssociativeCache
 
         private IKeyMapper<TKey> _keyMapper;
 
-        private IEntrySelector<TKey,TValue> _keyToDeletSelector;
+        private IEntrySelector<TKey> _keyToDeletSelector;
 
         private int _numbertOfSets;
         private int _setCapacity;

@@ -5,9 +5,9 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public class MFUSelector<TKey, TValue> : IEntrySelector<TKey, TValue>
+    public class MFUSelector<TKey> : IEntrySelector<TKey>
     {
-        public TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey, TValue>> list)
+        public TKey SelectEntryKey(IEnumerable<CacheEntryStat<TKey>> list)
         {
             var mostFrequentlyUsed = list.Max(t => t.ReadCount);
 

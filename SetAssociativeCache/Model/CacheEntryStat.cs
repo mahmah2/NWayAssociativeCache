@@ -4,13 +4,13 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public class CacheEntryStat<TKey, TValue>
+    public class CacheEntryStat<TKey>
     {
-        public CacheEntryStat(CacheEntry<TKey, TValue> cacheEntry)
+        public CacheEntryStat(TKey key, long lastReadTick, int readCount)
         {
-            Key = cacheEntry.Key;
-            LastReadTick = cacheEntry.LastReadTick;
-            ReadCount = cacheEntry.ReadCount;
+            Key = key;
+            LastReadTick = lastReadTick;
+            ReadCount = readCount;
         }
         public TKey Key { get; private set; }
         public int ReadCount { get; private set; }
