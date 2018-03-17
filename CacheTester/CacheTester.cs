@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Diagnostics;
+using SetAssociativeCache;
 
 namespace CacheTester
 {
@@ -12,18 +13,17 @@ namespace CacheTester
         public void CacheTesterInt1()
         {
             //Testing 1 Way cache with 16 entries and integer key and integer value 
-            var cache = new SetAssociativeCache.NWayAssociateCache<int, int>(1, 16 
-                                                                            ,(i,j)=> i-j  //how to compare keys
-                                                                            ,(i,j)=> i-j  //how to compare  values
-                                                                            , i => 0      //Select first cache 
-                                                                            );
-            cache.SetRemoveAlgorithm(SetAssociativeCache.AlgorithmTypeEnum.Custom, i => 0); //always remove the first entry in a set
+            var cache = new NWayAssociateCache<int, int>(1, 16, new IntKeyMapper());
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<int,int>()); //always remove the first entry in a set
+
 
             Assert.IsNotNull(cache);
 
             cache.SetValue(1, 78);
             int intValue = 0;
             cache.ReadValue(1, out intValue);
+
+            Trace.WriteLine(cache.ToString());
 
             Assert.AreEqual(intValue, 78);
 
@@ -35,11 +35,7 @@ namespace CacheTester
         {
             //Testing 1 Way cache with 2 entries and integer key and integer value 
             //Testing miss count
-            var cache = new SetAssociativeCache.NWayAssociateCache<int, int>(1, 2,
-                                                                            (i, j) => i - j, //how to compare keys
-                                                                            (i, j) => i - j, //how to compare values
-                                                                            i => 0  //Select N 
-                                                                            );
+            var cache = new SetAssociativeCache.NWayAssociateCache<int, int>(1, 2, new IntKeyMapper());
 
             Assert.IsNotNull(cache);
 
@@ -65,12 +61,8 @@ namespace CacheTester
         public void CacheTesterString1()
         {
             //Testing 1 Way cache with 16 entries and string key and integer value 
-            var cache = new SetAssociativeCache.NWayAssociateCache<string, int>(1, 16,
-                (i, j) => string.Compare(i,j),
-                (i, j) => i - j,
-                i => 0  //Select N 
-                ); 
-            cache.SetRemoveAlgorithm(SetAssociativeCache.AlgorithmTypeEnum.Custom, l => l[0].Key); //always remove the first entry
+            var cache = new NWayAssociateCache<string, int>(1, 16, new StringKeyMapper()); 
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<string,int>()); //always remove the first entry
 
             Assert.IsNotNull(cache);
 
@@ -87,9 +79,7 @@ namespace CacheTester
         {
             //Testing 3 Way cache with 2 entries in each set and string key and Student class value 
             var cache = new SetAssociativeCache.NWayAssociateCache<string, Student>(3, 2,
-                (i, j) => string.Compare(i, j),
-                (i, j) => i.Compare(j),
-                i => i.Length % 3);  //Map string to its set by their string length
+                new  StringKeyMapper());  
 
             Assert.IsNotNull(cache);
 
@@ -129,7 +119,8 @@ namespace CacheTester
         [TestMethod]
         public void InterfaceTest()
         {
-            Assert.AreEqual(true, Int64 is IComparable);
+            int i = 0;
+            Assert.AreEqual(true, i is IComparable);
 
         }
 

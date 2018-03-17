@@ -12,8 +12,8 @@ namespace SetAssociativeCache
             LastReadTick = cacheEntry.LastReadTick;
             ReadCount = cacheEntry.ReadCount;
         }
-        public TKey Key { get; set; }
-        public int ReadCount { get; set; }
-        public long LastReadTick { get; set; }
+        public TKey Key { get; private set; }
+        public int ReadCount { get; private set; }
+        public long LastReadTick { get; private set; }
     }
 }

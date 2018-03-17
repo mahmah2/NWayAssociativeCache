@@ -7,7 +7,7 @@ namespace SetAssociativeCache
     public delegate int Comparer<T>(T v1, T v2);
     public delegate int GetKeySetIndex<T>(T v);
 
-    public class NWayAssociateCache<TKey, TValue>
+    public class NWayAssociateCache<TKey, TValue> where TKey : IComparable<TKey> where TValue : IComparable<TValue>
     {
 
         /// <summary>
@@ -16,14 +16,9 @@ namespace SetAssociativeCache
         /// </summary>
         /// <param name="nWays">Number of different cache sets</param>
         /// <param name="setCapacity">Capacity of each cache set</param>
-        /// <param name="keyComparer">Function that compares two keys and returns 0 if they are equal</param>
-        /// <param name="valueComparer">Function that compares two values and returns 0 if they are equal</param>
         /// <param name="getKeySetIndex">Function that gets a key and returns a hash number out of its value which is greater equal to 0 and less than N</param>
         /// <param name="selectDeleteIndexFunc">This function receives a list of statistics in a set of cach entries and choses one to be deleted</param>
-        public NWayAssociateCache(int nWays, int setCapacity,
-            Comparer<TKey> keyComparer,
-            Comparer<TValue> valueComparer,
-            GetKeySetIndex<TKey> getKeySetIndex)
+        public NWayAssociateCache(int nWays, int setCapacity, IKeyMapper<TKey> keyMapper)
         {
             if (nWays < 1)
                 throw new Exception($"{nameof(nWays)} should be greater than zero.");
@@ -31,42 +26,37 @@ namespace SetAssociativeCache
             if (setCapacity < 1)
                 throw new Exception($"{nameof(setCapacity)} should be greater than zero.");
 
-            _n = nWays;
+            _numbertOfSets = nWays;
             _setCapacity = setCapacity;
-            _keyComparer = keyComparer;
-            _valueComparer = valueComparer;
-            _getKeySetIndex = getKeySetIndex;
+            _keyMapper = keyMapper;
 
-            _selectKeyToDeleteFunc = AlgorithmRepository<TKey, TValue>.AlgorithmMethods[AlgorithmTypeEnum.LRU];
+            _keyToDeletSelector = AlgorithmRepository<TKey, TValue>.Definitions[AlgorithmTypeEnum.LRU];
 
             _cache = new CacheDataStorage<TKey, TValue>(nWays);
             for (int setIndex = 0; setIndex < nWays; setIndex++)
             {
-                _cache[setIndex] = new CacheEntryList<TKey, TValue>(setCapacity, _selectKeyToDeleteFunc, keyComparer, valueComparer);
+                _cache[setIndex] = new CacheEntryList<TKey, TValue>(setCapacity, _keyToDeletSelector);
                 _cache[setIndex].OnMiss += NWayAssociateCache_OnEntryListMiss;
                 _cache[setIndex].OnHit += NWayAssociateCache_OnEntryListHit;
             }
         }
 
         public bool SetRemoveAlgorithm(AlgorithmTypeEnum algorithmType,
-            SelectKeyToDeleteFunc<TKey, TValue> customDeleteKeySelector = null)
+            IEntrySelector<TKey, TValue> customDeleteKeySelector = null)
         {
             if (algorithmType == AlgorithmTypeEnum.Custom)
             {
-                if (customDeleteKeySelector == null)
-                    throw new ArgumentNullException(nameof(customDeleteKeySelector));
-
-                _selectKeyToDeleteFunc = customDeleteKeySelector;
+                _keyToDeletSelector = customDeleteKeySelector ?? throw new ArgumentNullException(nameof(customDeleteKeySelector));
             }
             else
             {
-                _selectKeyToDeleteFunc = AlgorithmRepository<TKey,TValue>.AlgorithmMethods[algorithmType];
+                _keyToDeletSelector = AlgorithmRepository<TKey,TValue>.Definitions[algorithmType];
             }
 
             //Apply the change to underlying cache sets
-            for (int setIndex = 0; setIndex < _n; setIndex++)
+            for (int setIndex = 0; setIndex < _numbertOfSets; setIndex++)
             {
-                _cache[setIndex].SetDeleteKeySelector(_selectKeyToDeleteFunc);
+                _cache[setIndex].SetDeleteKeySelector(_keyToDeletSelector);
             }
 
             return true;
@@ -87,21 +77,17 @@ namespace SetAssociativeCache
 
         private CacheDataStorage<TKey, TValue> _cache;
 
-        private Comparer<TKey> _keyComparer;
+        private IKeyMapper<TKey> _keyMapper;
 
-        private Comparer<TValue> _valueComparer;
+        private IEntrySelector<TKey,TValue> _keyToDeletSelector;
 
-        private GetKeySetIndex<TKey> _getKeySetIndex;
-
-        private SelectKeyToDeleteFunc<TKey, TValue> _selectKeyToDeleteFunc;
-
-        private int _n;
+        private int _numbertOfSets;
         private int _setCapacity;
 
         private int GetKeyIndex(TKey key)
         {
-            var index = _getKeySetIndex(key);
-            if (index < 0 || index >= _n || _setCapacity < 1)
+            var index = _keyMapper.MapKeyToIndex(key, _numbertOfSets);
+            if (index < 0 || index >= _numbertOfSets)
             {
                 throw new Exception($"Set index out of range, Set length = {_setCapacity}, Requested index = {index}");
             }
@@ -135,7 +121,7 @@ namespace SetAssociativeCache
 
         public override string ToString()
         {
-            var s = $"Dumping of {_n} Way cache with {_setCapacity} rows in each set: \r\n";
+            var s = $"Dumping of {_numbertOfSets} Way cache with {_setCapacity} rows in each set: \r\n";
             for (int i = 0; i < _cache.Count; i++)
             {
                 s += $"CacheSet {i} \r\n{_cache[i].ToString("\t")}\r\n";

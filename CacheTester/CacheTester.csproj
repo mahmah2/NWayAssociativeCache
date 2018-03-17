@@ -49,6 +49,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CacheTester.cs" />
+    <Compile Include="CustomKeyMapper\StudentKeyMapper.cs" />
+    <Compile Include="KeySelector\FirstEntrySelector.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Model\Student.cs" />
   </ItemGroup>

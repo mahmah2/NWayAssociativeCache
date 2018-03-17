@@ -6,18 +6,13 @@ using System.Text;
 
 namespace SetAssociativeCache
 {
-    public delegate TKey SelectKeyToDeleteFunc<TKey, TValue>(List<CacheEntry<TKey, TValue>> list);
-
-    public class CacheEntryList<TKey, TValue>
+    public class CacheEntryList<TKey, TValue> where TKey : IComparable<TKey> where TValue : IComparable<TValue>
     {
-        public CacheEntryList(int n, SelectKeyToDeleteFunc<TKey, TValue> selectDeleteIndexFunc
-            , Comparer<TKey> keyComparer, Comparer<TValue> valueComparer)
+        public CacheEntryList(int n, IEntrySelector<TKey,TValue> keyToBeDeletedSelector)
         {
             _capacity = n;
-            _deleteSelector = selectDeleteIndexFunc;
+            _keyToBeDeletedSelector = keyToBeDeletedSelector;
             _wayData = new List<CacheEntry<TKey, TValue>>(n);
-            _keyComparer = keyComparer;
-            _valueComparer = valueComparer;
 
             _writeLock = new object();
         }
@@ -29,19 +24,15 @@ namespace SetAssociativeCache
 
         private List<CacheEntry<TKey, TValue>> _wayData;
 
-        private SelectKeyToDeleteFunc<TKey, TValue> _deleteSelector;
-
-        private Comparer<TKey> _keyComparer;
-
-        private Comparer<TValue> _valueComparer;
+        private IEntrySelector<TKey, TValue> _keyToBeDeletedSelector;
 
         private object _writeLock;
 
-        public bool SetDeleteKeySelector(SelectKeyToDeleteFunc<TKey,TValue> func)
+        public bool SetDeleteKeySelector(IEntrySelector<TKey, TValue> func)
         {
             lock (_writeLock)
             {
-                _deleteSelector = func;
+                _keyToBeDeletedSelector = func;
                 return true;
             }
         }
@@ -51,11 +42,11 @@ namespace SetAssociativeCache
             var missHappened = false;
             lock (_writeLock)
             {
-                var foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+                var foundEntry = _wayData.FirstOrDefault(p => p.Key.CompareTo(key) == 0);
 
                 if (foundEntry != null)
                 {
-                    if (_valueComparer(foundEntry.Value, value) != 0)
+                    if (foundEntry.Value.CompareTo(value) != 0)
                     {
                         foundEntry.UpdateValue(value);
                     }
@@ -64,9 +55,9 @@ namespace SetAssociativeCache
                 {
                     while (_wayData.Count >= _capacity)
                     {
-                        var keyToRemove = _deleteSelector(_wayData);
+                        var keyToRemove = _keyToBeDeletedSelector.SelectEntryKey(GenerateStatisticsList());
 
-                        var entryToRemove = _wayData.FirstOrDefault(p => _keyComparer(p.Key, keyToRemove) == 0);
+                        var entryToRemove = _wayData.FirstOrDefault(p => p.Key.CompareTo(keyToRemove) == 0);
 
                         if (entryToRemove == null)
                             throw new Exception($"Selected key to be deleted doesn't exist. key = {keyToRemove?.ToString()} ");
@@ -103,7 +94,7 @@ namespace SetAssociativeCache
 
             lock (_writeLock)
             {
-                foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+                foundEntry = _wayData.FirstOrDefault(p => p.Key.CompareTo(key) == 0);
             }
 
             return foundEntry != null;
@@ -120,7 +111,7 @@ namespace SetAssociativeCache
                 {
                     CacheEntry<TKey, TValue> foundEntry = default(CacheEntry<TKey, TValue>);
 
-                    foundEntry = _wayData.FirstOrDefault(p => _keyComparer(p.Key, key) == 0);
+                    foundEntry = _wayData.FirstOrDefault(p => p.Key.CompareTo(key) == 0);
 
                     if (foundEntry != null)
                     {
