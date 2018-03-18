@@ -16,8 +16,7 @@ namespace SetAssociativeCache
         /// </summary>
         /// <param name="nWays">Number of different cache sets</param>
         /// <param name="setCapacity">Capacity of each cache set</param>
-        /// <param name="getKeySetIndex">Function that gets a key and returns a hash number out of its value which is greater equal to 0 and less than N</param>
-        /// <param name="selectDeleteIndexFunc">This function receives a list of statistics in a set of cach entries and choses one to be deleted</param>
+        /// <param name="keyMapper">And object that implements IKeyMapper to map a key to its corresponding index</param>
         public NWayAssociateCache(int nWays, int setCapacity, IKeyMapper<TKey> keyMapper)
         {
             if (nWays < 1)
@@ -41,6 +40,13 @@ namespace SetAssociativeCache
             }
         }
 
+        /// <summary>
+        /// Sets the algorithm used to select next key to be deleted
+        /// </summary>
+        /// <param name="algorithmType">AlgorithTypeEnum has already four standard algorithms and a custom one</param>
+        /// <param name="customDeleteKeySelector">If first algorithm is custom then this one should be provided by
+        /// a class that implements IEntrySelector interface</param>
+        /// <returns></returns>
         public bool SetRemoveAlgorithm(AlgorithmTypeEnum algorithmType,
             IEntrySelector<TKey> customDeleteKeySelector = null)
         {
@@ -62,40 +68,20 @@ namespace SetAssociativeCache
             return true;
         }
 
-        private void NWayAssociateCache_OnEntryListHit(object sender, EventArgs e)
-        {
-            OnHit?.Invoke(sender, e);
-        }
-
-        private void NWayAssociateCache_OnEntryListMiss(object sender, EventArgs e)
-        {
-            OnMiss?.Invoke(sender, e);
-        }
-
+        /// <summary>
+        /// Triggers when a miss occurs in the cache
+        /// </summary>
         public event EventHandler OnMiss;
+        /// <summary>
+        /// Triggers when a hit occurs in the cache
+        /// </summary>
         public event EventHandler OnHit;
 
-        private CacheDataStorage<TKey, TValue> _cache;
-
-        private IKeyMapper<TKey> _keyMapper;
-
-        private IEntrySelector<TKey> _keyToDeletSelector;
-
-        private int _numbertOfSets;
-        public int NumbertOfSets { get { return _numbertOfSets; } }
-        private int _setCapacity;
-        public int SetCapacity { get { return _setCapacity; } }
-
-        private int GetKeyIndex(TKey key)
-        {
-            var index = _keyMapper.MapKeyToIndex(key, _numbertOfSets);
-            if (index < 0 || index >= _numbertOfSets)
-            {
-                throw new Exception($"Set index out of range, Set length = {_setCapacity}, Requested index = {index}");
-            }
-            return index;
-        }
-
+        /// <summary>
+        /// Sets a key value in the cache
+        /// </summary>
+        /// <param name="key">Key calue</param>
+        /// <param name="value">Value to be set</param>
         public void SetValue(TKey key, TValue value)
         {
             var index = GetKeyIndex(key);
@@ -103,13 +89,19 @@ namespace SetAssociativeCache
             _cache[index].SetValue(key, value);
         }
 
+        /// <summary>
+        /// Reads a key value in the cache
+        /// </summary>
+        /// <param name="key">Key value to be read</param>
+        /// <param name="value">Value of the key that would be read</param>
+        /// <returns></returns>
         public bool ReadValue(TKey key, out TValue value)
         {
             value = default(TValue);
 
             var index = GetKeyIndex(key);
 
-            if(_cache[index].ReadValue(key, out value))
+            if (_cache[index].ReadValue(key, out value))
             {
                 OnHit?.Invoke(this, EventArgs.Empty);
 
@@ -123,6 +115,10 @@ namespace SetAssociativeCache
             }
         }
 
+        /// <summary>
+        /// Showd the current Sets, Keys and Values of the cache
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             var s = $"Dumping of {_numbertOfSets} Way cache with {_setCapacity} rows in each set: \r\n";
@@ -132,6 +128,39 @@ namespace SetAssociativeCache
             }
             return s;
         }
+
+        private int _numbertOfSets;
+        public int NumbertOfSets { get { return _numbertOfSets; } }
+
+        private int _setCapacity;
+        public int SetCapacity { get { return _setCapacity; } }
+
+        private CacheDataStorage<TKey, TValue> _cache;
+
+        private IKeyMapper<TKey> _keyMapper;
+
+        private IEntrySelector<TKey> _keyToDeletSelector;
+
+        private int GetKeyIndex(TKey key)
+        {
+            var index = _keyMapper.MapKeyToIndex(key, _numbertOfSets);
+            if (index < 0 || index >= _numbertOfSets)
+            {
+                throw new Exception($"Set index out of range, Set length = {_setCapacity}, Requested index = {index}");
+            }
+            return index;
+        }
+
+        private void NWayAssociateCache_OnEntryListHit(object sender, EventArgs e)
+        {
+            OnHit?.Invoke(sender, e);
+        }
+
+        private void NWayAssociateCache_OnEntryListMiss(object sender, EventArgs e)
+        {
+            OnMiss?.Invoke(sender, e);
+        }
+
 
     }
 }

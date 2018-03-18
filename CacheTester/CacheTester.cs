@@ -159,6 +159,21 @@ namespace CacheTester
 
             Assert.IsNotNull(cache);
 
+            /*
+             This test does not simulate the situation in which a racing condition causes invalid write 
+             in an entry. To create that situation one thread should call SetValue then after identifying 
+             the target key first thread should be suspended then the second thread sets a new value and the
+             already read key in the first thread should be deleted and after that first thread resumes and encounters 
+             an exception. To simulate this situation lots of works and extra code should be put 
+             into the NWayAssociateCache. But the code is already protected against these cases by leveraging
+             lock statements.
+            
+             This test only creates tasks that are run in parallel and each of them target its specific cache set
+             and writes different keys and values on the target cache and verifies the last set value.
+             */
+
+
+
             Task[] tasks = new Task[cache.NumbertOfSets];
 
             for (int i = 0; i < tasks.Length; i++)
