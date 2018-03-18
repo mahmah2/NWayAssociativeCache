@@ -82,7 +82,9 @@ namespace SetAssociativeCache
         private IEntrySelector<TKey> _keyToDeletSelector;
 
         private int _numbertOfSets;
+        public int NumbertOfSets { get { return _numbertOfSets; } }
         private int _setCapacity;
+        public int SetCapacity { get { return _setCapacity; } }
 
         private int GetKeyIndex(TKey key)
         {
@@ -107,16 +109,18 @@ namespace SetAssociativeCache
 
             var index = GetKeyIndex(key);
 
-            if (_cache[index].ContainsKey(key))
+            if(_cache[index].ReadValue(key, out value))
             {
-                value = _cache[index].ReadValue(key);
+                OnHit?.Invoke(this, EventArgs.Empty);
 
                 return true;
             }
             else
+            {
                 OnMiss?.Invoke(this, EventArgs.Empty);
 
-            return false;
+                return false;
+            }
         }
 
         public override string ToString()

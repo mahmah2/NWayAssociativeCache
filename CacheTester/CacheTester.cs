@@ -3,6 +3,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Diagnostics;
 using SetAssociativeCache;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace CacheTester
 {
@@ -35,7 +37,7 @@ namespace CacheTester
         {
             //Testing 1 Way cache with 2 entries and integer key and integer value 
             //Testing miss count
-            var cache = new SetAssociativeCache.NWayAssociateCache<int, int>(1, 2, new IntKeyMapper());
+            var cache = new NWayAssociateCache<int, int>(1, 2, new IntKeyMapper());
 
             Assert.IsNotNull(cache);
 
@@ -78,7 +80,7 @@ namespace CacheTester
         public void CacheTesterStudent1()
         {
             //Testing 3 Way cache with 2 entries in each set and string key and Student class value 
-            var cache = new SetAssociativeCache.NWayAssociateCache<string, Student>(3, 2,
+            var cache = new NWayAssociateCache<string, Student>(3, 2,
                 new  StringKeyMapper());  
 
             Assert.IsNotNull(cache);
@@ -117,15 +119,76 @@ namespace CacheTester
         }
 
         [TestMethod]
-        public void InterfaceTest()
+        public void StudentKeyTest()
         {
-            int i = 0;
-            Assert.AreEqual(true, i is IComparable);
+            //Testing 3 Way cache with 2 entries in each set and Student key and int value 
+            var cache = new NWayAssociateCache<Student, int>(3, 2, new StudentKeyMapper());
 
+            cache.SetValue(new Student("S01", 10), 13); //Fills first entry
+            cache.SetValue(new Student("S02", 11), 54); //Fills second place
+            cache.SetValue(new Student("S01", 13), 66); //Uppdates S01 timestamp and pushes S02 back in the list ordered by time 
+            cache.SetValue(new Student("S03", 14), 3); //Insert new entry S02 should be removed
+
+            cache.SetValue(new Student("S001", 20.05M), 246);
+            cache.SetValue(new Student("S002", 22.05M), 76);
+            cache.SetValue(new Student("S003", 23.05M), 87);
+            cache.SetValue(new Student("S004", 25.15M), 8);
+
+            cache.SetValue(new Student("S0001", 15.9M), 2900);
+            cache.SetValue(new Student("S0002", 17.9M), 155);
+            cache.SetValue(new Student("S0003", 18.9M), 322);
+
+            Trace.WriteLine(cache.ToString());
+
+            int i = 0;
+            cache.ReadValue(new Student("S01", 13), out i);
+            Assert.AreEqual(66, i);
+
+            cache.ReadValue(new Student("S003", 23.05M), out i);
+            Assert.AreEqual(87, i);
+
+            cache.ReadValue(new Student("S0003", 18.9M), out i);
+            Assert.AreEqual(322, i);
         }
 
-        //todo :  test custom algorithm : remove last element
-        //Todo :  test remove of most frequently used
-        //Todo : test multi threading
+        [TestMethod]
+        public void MultiThreadTest1()
+        {
+            //Testing 4 Way cache with 2 entries and integer key and integer value 
+            var cache = new NWayAssociateCache<int, int>(5, 100, new IntKeyMapper());
+
+            Assert.IsNotNull(cache);
+
+            Task[] tasks = new Task[cache.NumbertOfSets];
+
+            for (int i = 0; i < tasks.Length; i++)
+            {
+                tasks[i] = Task.Run(() => {
+                    int threadNo = i;
+
+                    Random r = new Random();
+
+                    for (int j = 0; j < cache.SetCapacity; j++)
+                    {
+                        var key = threadNo * cache.SetCapacity + j;
+
+                        cache.SetValue(key , key);
+
+                        Thread.Sleep(r.Next(5, 50));
+
+                        int value;
+                        var result = cache.ReadValue(key, out value);
+
+                        Assert.IsTrue(result);
+
+                        Assert.AreEqual(key, value);
+                    }
+                }
+                );
+            }
+
+            Task.WaitAll(tasks);
+        }
+        
     }
 }

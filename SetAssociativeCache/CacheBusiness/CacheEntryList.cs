@@ -100,38 +100,26 @@ namespace SetAssociativeCache
             return foundEntry != null;
         }
 
-        public TValue ReadValue(TKey key)
+        public bool ReadValue(TKey key, out TValue value)
         {
-            var missHappened = false;
-            var hitHappened = false;
+            value = default(TValue);
 
-            try
+            lock (_writeLock)
             {
-                lock (_writeLock)
+                CacheEntry<TKey, TValue> foundEntry = default(CacheEntry<TKey, TValue>);
+
+                foundEntry = _wayData.FirstOrDefault(p => p.Key.CompareTo(key) == 0);
+
+                if (foundEntry != null)
                 {
-                    CacheEntry<TKey, TValue> foundEntry = default(CacheEntry<TKey, TValue>);
+                    value = foundEntry.ReadValueAndUpdateStat();
 
-                    foundEntry = _wayData.FirstOrDefault(p => p.Key.CompareTo(key) == 0);
-
-                    if (foundEntry != null)
-                    {
-                        hitHappened = true;
-                        return foundEntry.ReadValueAndUpdateStat();
-                    }
-                    else
-                    {
-                        missHappened = true;
-                        return default(TValue);
-                    }
+                    return true;
                 }
-            }
-            finally
-            {
-                if (hitHappened)
-                    OnHit?.Invoke(this, EventArgs.Empty);
-
-                if (missHappened)
-                    OnMiss?.Invoke(this, EventArgs.Empty);
+                else
+                {
+                    return false;
+                }
             }
         }
 

@@ -5,11 +5,11 @@ using System.Text;
 
 namespace CacheTester
 {
-    public class StudentKeyMapper : IKeyMapper<string>
+    public class StudentKeyMapper : IKeyMapper<Student>
     {
-        public int MapKeyToIndex(string key, int targetLength)
+        public int MapKeyToIndex(Student key, int targetLength)
         {
-            return key.Length % targetLength; //Map Student to its set by their Name length
+            return key.Name.Length % targetLength; //Map Student to its set by their Name length
         }
     }
 }
