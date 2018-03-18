@@ -116,6 +116,18 @@ namespace SetAssociativeCache
         }
 
         /// <summary>
+        /// Checks if a given key exists in cache or not
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public bool ContainsKey(TKey key)
+        {
+            var index = GetKeyIndex(key);
+
+            return _cache[index].ContainsKey(key);
+        }
+
+        /// <summary>
         /// Showd the current Sets, Keys and Values of the cache
         /// </summary>
         /// <returns></returns>

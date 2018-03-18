@@ -54,8 +54,11 @@ namespace CacheTester
 
             int intValue = 0;
             cache.ReadValue(2, out intValue);
-
             Assert.AreEqual(intValue, 20);
+
+            if (cache.ContainsKey(12))
+                cache.ReadValue(12, out intValue);
+
             Trace.WriteLine(cache.ToString());
         }
 
