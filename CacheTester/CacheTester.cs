@@ -5,6 +5,8 @@ using System.Diagnostics;
 using SetAssociativeCache;
 using System.Threading.Tasks;
 using System.Threading;
+using Castle.Windsor;
+using Castle.MicroKernel.Registration;
 
 namespace CacheTester
 {
@@ -15,8 +17,15 @@ namespace CacheTester
         public void CacheTesterInt1()
         {
             //Testing 1 Way cache with 16 entries and integer key and integer value 
-            var cache = new NWayAssociateCache<int, int>(1, 16, new IntKeyMapper());
-            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<int>()); //always remove the first entry in a set
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<int>>().ImplementedBy<IntKeyMapper>());
+            var intKeyMapper = container.Resolve<IKeyMapper<int>>();
+
+            container.Register(Component.For<IEntrySelector<int>>().ImplementedBy<FirstEntrySelector<int>>());
+            var firstEntrySelector = container.Resolve<IEntrySelector<int>>();
+
+            var cache = new NWayAssociateCache<int, int>(1, 16, intKeyMapper);
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, firstEntrySelector); //always remove the first entry in a set
 
 
             Assert.IsNotNull(cache);
@@ -37,7 +46,11 @@ namespace CacheTester
         {
             //Testing 1 Way cache with 2 entries and integer key and integer value 
             //Testing miss count
-            var cache = new NWayAssociateCache<int, int>(1, 2, new IntKeyMapper());
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<int>>().ImplementedBy<IntKeyMapper>());
+            var intKeyMapper = container.Resolve<IKeyMapper<int>>();
+
+            var cache = new NWayAssociateCache<int, int>(1, 2, intKeyMapper);
 
             Assert.IsNotNull(cache);
 
@@ -56,18 +69,27 @@ namespace CacheTester
             cache.ReadValue(2, out intValue);
             Assert.AreEqual(intValue, 20);
 
+            Assert.IsFalse(cache.ContainsKey(12));
+
             if (cache.ContainsKey(12))
                 cache.ReadValue(12, out intValue);
 
-            Trace.WriteLine(cache.ToString());
+            //Trace.WriteLine(cache.ToString());
         }
 
         [TestMethod]
         public void CacheTesterString1()
         {
             //Testing 1 Way cache with 16 entries and string key and integer value 
-            var cache = new NWayAssociateCache<string, int>(1, 16, new StringKeyMapper()); 
-            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, new FirstEntrySelector<string>()); //always remove the first entry
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<string>>().ImplementedBy<StringKeyMapper>());
+            var stringKeyMapper = container.Resolve<IKeyMapper<string>>();
+
+            container.Register(Component.For<IEntrySelector<string>>().ImplementedBy<FirstEntrySelector<string>>());
+            var firstEntrySelector = container.Resolve<IEntrySelector<string>>();
+
+            var cache = new NWayAssociateCache<string, int>(1, 16, stringKeyMapper); 
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, firstEntrySelector); //always remove the first entry
 
             Assert.IsNotNull(cache);
 
@@ -83,8 +105,11 @@ namespace CacheTester
         public void CacheTesterStudent1()
         {
             //Testing 3 Way cache with 2 entries in each set and string key and Student class value 
-            var cache = new NWayAssociateCache<string, Student>(3, 2,
-                new  StringKeyMapper());  
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<string>>().ImplementedBy<StringKeyMapper>());
+            var stringKeyMapper = container.Resolve<IKeyMapper<string>>();
+
+            var cache = new NWayAssociateCache<string, Student>(3, 2, stringKeyMapper);  
 
             Assert.IsNotNull(cache);
 
@@ -125,7 +150,11 @@ namespace CacheTester
         public void StudentKeyTest()
         {
             //Testing 3 Way cache with 2 entries in each set and Student key and int value 
-            var cache = new NWayAssociateCache<Student, int>(3, 2, new StudentKeyMapper());
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<Student>>().ImplementedBy<StudentKeyMapper>());
+            var studentKeyMapper = container.Resolve<IKeyMapper<Student>>();
+
+            var cache = new NWayAssociateCache<Student, int>(3, 2, studentKeyMapper);
 
             cache.SetValue(new Student("S01", 10), 13); //Fills first entry
             cache.SetValue(new Student("S02", 11), 54); //Fills second place
@@ -158,7 +187,11 @@ namespace CacheTester
         public void MultiThreadTest1()
         {
             //Testing 4 Way cache with 2 entries and integer key and integer value 
-            var cache = new NWayAssociateCache<int, int>(5, 100, new IntKeyMapper());
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<int>>().ImplementedBy<IntKeyMapper>());
+            var intKeyMapper = container.Resolve<IKeyMapper<int>>();
+
+            var cache = new NWayAssociateCache<int, int>(5, 100, intKeyMapper);
 
             Assert.IsNotNull(cache);
 
