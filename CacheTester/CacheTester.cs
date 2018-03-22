@@ -16,7 +16,7 @@ namespace CacheTester
         [TestMethod]
         public void CacheTesterInt1()
         {
-            //Testing 1 Way cache with 16 entries and integer key and integer value 
+            //Testing 1 Way cache with 4 entries and integer key and integer value 
             var container = new WindsorContainer();
             container.Register(Component.For<IKeyMapper<int>>().ImplementedBy<IntKeyMapper>());
             var intKeyMapper = container.Resolve<IKeyMapper<int>>();
@@ -24,13 +24,19 @@ namespace CacheTester
             container.Register(Component.For<IEntrySelector<int>>().ImplementedBy<FirstEntrySelector<int>>());
             var firstEntrySelector = container.Resolve<IEntrySelector<int>>();
 
-            var cache = new NWayAssociateCache<int, int>(1, 16, intKeyMapper);
+            var cache = new NWayAssociateCache<int, int>(1, 4, intKeyMapper);
             cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, firstEntrySelector); //always remove the first entry in a set
-
 
             Assert.IsNotNull(cache);
 
+            cache.SetValue(1, 7);
+            cache.SetValue(2, 178);
+            cache.SetValue(3, 378);
+            cache.SetValue(4, 748);
+            cache.SetValue(5, 234);
+            cache.SetValue(6, 20333);
             cache.SetValue(1, 78);
+
             int intValue = 0;
             cache.ReadValue(1, out intValue);
 
@@ -70,9 +76,6 @@ namespace CacheTester
             Assert.AreEqual(intValue, 20);
 
             Assert.IsFalse(cache.ContainsKey(12));
-
-            if (cache.ContainsKey(12))
-                cache.ReadValue(12, out intValue);
 
             //Trace.WriteLine(cache.ToString());
         }
