@@ -42,7 +42,7 @@ namespace CacheTester
 
             Trace.WriteLine(cache.ToString());
 
-            Assert.AreEqual(intValue, 78);
+            Assert.AreEqual(78, intValue);
 
             Trace.WriteLine(cache.ToString());
         }
@@ -73,7 +73,7 @@ namespace CacheTester
 
             int intValue = 0;
             cache.ReadValue(2, out intValue);
-            Assert.AreEqual(intValue, 20);
+            Assert.AreEqual(20, intValue);
 
             Assert.IsFalse(cache.ContainsKey(12));
 
@@ -100,7 +100,7 @@ namespace CacheTester
             int intValue = 0;
             cache.ReadValue("Key1", out intValue);
 
-            Assert.AreEqual(intValue, 154);
+            Assert.AreEqual(154, intValue);
             Trace.WriteLine(cache.ToString());
         }
 
@@ -140,13 +140,13 @@ namespace CacheTester
 
             Student studentValue = default(Student);
             cache.ReadValue("S01", out studentValue);
-            Assert.AreEqual(studentValue.Age, 13);
+            Assert.AreEqual(13, studentValue.Age);
 
             cache.ReadValue("S003", out studentValue);
-            Assert.AreEqual(studentValue.Age, 23.05M);
+            Assert.AreEqual(23.05M, studentValue.Age);
 
             cache.ReadValue("S0003", out studentValue);
-            Assert.AreEqual(studentValue.Age, 18.9M);
+            Assert.AreEqual(18.9M, studentValue.Age);
         }
 
         [TestMethod]
@@ -243,6 +243,38 @@ namespace CacheTester
 
             Task.WaitAll(tasks);
         }
-        
+
+        [TestMethod]
+        public async Task CacheTesterAsync1()
+        {
+            //Testing 1 Way cache with 4 entries and integer key and integer value 
+            var container = new WindsorContainer();
+            container.Register(Component.For<IKeyMapper<int>>().ImplementedBy<IntKeyMapper>());
+            var intKeyMapper = container.Resolve<IKeyMapper<int>>();
+
+            container.Register(Component.For<IEntrySelector<int>>().ImplementedBy<FirstEntrySelector<int>>());
+            var firstEntrySelector = container.Resolve<IEntrySelector<int>>();
+
+            var cache = new NWayAssociateCache<int, int>(1, 4, intKeyMapper);
+            cache.SetRemoveAlgorithm(AlgorithmTypeEnum.Custom, firstEntrySelector); //always remove the first entry in a set
+
+            Assert.IsNotNull(cache);
+
+            await cache.SetValueAsync(1, 7);
+            await cache.SetValueAsync(2, 178);
+            await cache.SetValueAsync(3, 378);
+            await cache.SetValueAsync(4, 748);
+            await cache.SetValueAsync(5, 234);
+            await cache.SetValueAsync(6, 20333);
+            await cache.SetValueAsync(1, 78);
+
+            var result = await cache.ReadValueAsync(1);
+
+            Trace.WriteLine(cache.ToString());
+
+            Assert.AreEqual(78, result.ReturnedValue);
+        }
+
+
     }
 }

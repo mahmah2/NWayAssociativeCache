@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SetAssociativeCache
 {
@@ -56,7 +57,7 @@ namespace SetAssociativeCache
             }
             else
             {
-                _keyToDeletSelector = AlgorithmRepository<TKey,TValue>.Definitions[algorithmType];
+                _keyToDeletSelector = AlgorithmRepository<TKey, TValue>.Definitions[algorithmType];
             }
 
             //Apply the change to underlying cache sets
@@ -89,6 +90,15 @@ namespace SetAssociativeCache
             _cache[index].SetValue(key, value);
         }
 
+        public async Task SetValueAsync(TKey key, TValue value)
+        {
+            await Task.Run(() =>
+            {
+                SetValue(key, value);
+            });
+        }
+
+
         /// <summary>
         /// Reads a key value in the cache
         /// </summary>
@@ -114,6 +124,25 @@ namespace SetAssociativeCache
                 return false;
             }
         }
+
+        public async Task<OperationResult<TValue>> ReadValueAsync(TKey key)
+        {
+            bool result = false;
+            TValue par = default(TValue);
+
+            await Task.Run(()=> {
+                result =  ReadValue(key, out par);
+            });
+
+            return new OperationResult<TValue>() {
+                ReturnedValue = par,
+                Successful = result
+            };
+        }
+
+
+
+
 
         /// <summary>
         /// Checks if a given key exists in cache or not
@@ -174,5 +203,11 @@ namespace SetAssociativeCache
         }
 
 
+    }
+
+    public class OperationResult<TValue>
+    {
+        public TValue ReturnedValue { get; set; }
+        public bool Successful { get; set; }
     }
 }
